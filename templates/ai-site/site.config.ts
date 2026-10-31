@@ -15,6 +15,7 @@ export default defineSite({
       price: { amount: 499, currency: 'usd' },
       credits: 200,
       expiresDays: null,
+      refs: { creem: 'prod_replace_pack_200' },
     },
     {
       id: 'pack_1000',
@@ -23,6 +24,7 @@ export default defineSite({
       price: { amount: 1999, currency: 'usd' },
       credits: 1000,
       expiresDays: null,
+      refs: { creem: 'prod_replace_pack_1000' },
     },
     {
       id: 'pro_month',
@@ -31,10 +33,12 @@ export default defineSite({
       price: { amount: 999, currency: 'usd' },
       interval: 'month',
       creditsPerPeriod: 600,
+      refs: { creem: 'prod_replace_pro_month' },
     },
   ],
   signup: { bonusCredits: 20, bonusExpiresDays: 30, bonusPerIpDaily: 3, bonusSiteDaily: 100 },
   guest: { dailyPerDevice: 2, dailyPerIp: 4, dailySiteBudget: 200, minRecaptchaScore: 0.5 },
-  billing: { provider: 'stripe', automaticTax: false },
+  // Creem product IDs (refs.creem) come from the Creem dashboard; each product there must have the same price and currency.
+  billing: { provider: 'creem' },
   analytics: {},
 });

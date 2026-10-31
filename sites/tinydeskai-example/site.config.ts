@@ -18,6 +18,7 @@ export default defineSite({
       price: { amount: 998, currency: 'usd' },
       credits: 10,
       expiresDays: null,
+      refs: { creem: 'prod_replace_video_1' },
     },
     {
       id: 'video_3',
@@ -26,6 +27,7 @@ export default defineSite({
       price: { amount: 2499, currency: 'usd' },
       credits: 30,
       expiresDays: null,
+      refs: { creem: 'prod_replace_video_3' },
     },
     {
       id: 'video_10',
@@ -34,10 +36,12 @@ export default defineSite({
       price: { amount: 5999, currency: 'usd' },
       credits: 100,
       expiresDays: null,
+      refs: { creem: 'prod_replace_video_10' },
     },
   ],
   signup: { bonusCredits: 0, bonusExpiresDays: null, bonusPerIpDaily: 0, bonusSiteDaily: 0 },
   guest: { dailyPerDevice: 0, dailyPerIp: 0, dailySiteBudget: 0, minRecaptchaScore: 0.5 },
-  billing: { provider: 'stripe', automaticTax: false },
+  // Creem product IDs (refs.creem) come from the Creem dashboard; each product there must have the same price and currency.
+  billing: { provider: 'creem' },
   analytics: {},
 });

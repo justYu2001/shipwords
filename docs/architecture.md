@@ -24,7 +24,7 @@ shipwords is a monorepo for running one AI tool site per keyword. All sites shar
 | Rate limits      | Guest daily quota and site budget in D1 with conditional writes      | KV is eventually consistent and not suitable for exact counters                                              |
 | Device identity  | IP (IPv6 grouped by /64) plus a signed device cookie                 |                                                                                                              |
 | Disposable email | Built-in blocklist                                                   | Sign-up bonus requires a verified, non-disposable email                                                      |
-| Payments         | Stripe (default) or PayPal, behind one provider interface            | See section 5                                                                                                |
+| Payments         | Creem (default), Stripe or PayPal, behind one provider interface     | See section 5                                                                                                |
 | Job runtime      | Cloudflare Workflows                                                 | See section 6                                                                                                |
 | Storage          | R2 binding                                                           | Outputs served through the site                                                                              |
 | i18n             | Paraglide                                                            | Production builds ship English only                                                                          |
@@ -130,6 +130,7 @@ One state machine is shared by all providers.
 - **Webhook flow:** verify, insert into `webhook_events` to deduplicate, `fetchState`, update state and grant or revoke credits in one D1 batch, return 200.
 - **Credit grants** use `pay:<paymentId>` as the idempotency key. Subscriptions grant once per paid period; subscription credits expire at period end, pack credits expire after `expiresDays` (or never).
 - **Stripe:** Checkout in `payment` or `subscription` mode; customer portal for cancel, card update and invoices. Stripe is not a merchant of record; enable Stripe Tax (`billing.automaticTax`) or handle sales tax yourself.
+- **Creem:** merchant of record (handles tax). Products are pre-created in the dashboard (`refs.creem`); `paymentRef` is the Creem transaction, and refunds and chargebacks are read from it. Customer portal for cancel and card update. Details in [docs/live/creem-billing.md](live/creem-billing.md).
 - **PayPal:** packs use Orders v2 and are captured by us (on return and on `CHECKOUT.ORDER.APPROVED`, with a fixed `PayPal-Request-Id`); subscriptions use Subscriptions v1 with a pre-created Plan in `refs.paypal`.
 - **Front end:** `usePricing()` reads the catalog and `useCheckout(productId)` starts a checkout. A site enables one provider at a time through `billing.provider`.
 

@@ -18,7 +18,7 @@ const REQUIRED_ROUTES = [
   'src/routes/sitemap[.]xml.ts',
   'src/routes/robots[.]txt.ts',
   'src/routes/llms[.]txt.ts',
-  'src/routes/api/webhooks/stripe.ts',
+  'src/routes/api/webhooks/creem.ts',
   'src/routes/api/auth/$.ts',
 ];
 // Policy pages: required by payment providers and for complaints. Text lives in messages/legal; the template has TODO placeholders.

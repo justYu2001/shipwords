@@ -21,9 +21,9 @@ Use footage and music you have the rights to, or AI-generated base clips, and ke
 
 ## Run it locally
 
-1. `~/.config/shipwords/tinydeskai-example.dev.vars` from `.dev.vars.example` (Stripe test key, Google OAuth client with `http://localhost:<port>` as an origin), then `pnpm setup:worktree`, which prints the port.
+1. `~/.config/shipwords/tinydeskai-example.dev.vars` from `.dev.vars.example` (Creem test key, Google OAuth client with `http://localhost:<port>` as an origin), then `pnpm setup:worktree`, which prints the port.
 2. Put your media in `public/media/` and your clips into local R2: `pnpm wrangler r2 object put tinydeskai-example-outputs/assets/tinydesk/<file> --local --file <file>`.
-3. `pnpm db:migrate:local && pnpm dev`; `node ../../tools/stripe-listen.mjs` forwards Stripe test webhooks.
+3. `pnpm db:migrate:local && pnpm dev`; Creem test webhooks need a tunnel (see docs/local-development.md).
 
 `UPSTREAM_MOCK=1` (the default in `.dev.vars.example`) runs the whole flow without calling the paid upstream: outputs are the reference clips. Set `UPSTREAM_MOCK_RESULT` / `UPSTREAM_MOCK_RESULT_SILENT` to R2 keys of a finished video to return that instead.
 
@@ -31,5 +31,5 @@ Use footage and music you have the rights to, or AI-generated base clips, and ke
 
 1. Pick a domain; set `url` in `site.config.ts`, `routes` and `EMAIL_FROM` in `wrangler.jsonc`, `SUPPORT_EMAIL` in `src/site/legal.tsx`, and rename the resources.
 2. `pnpm wrangler d1 create <name>`, put the id in `wrangler.jsonc`, `pnpm db:migrate:remote`; create the R2 bucket, upload the assets, add a lifecycle rule deleting `uploads/` after 2 days.
-3. Secrets: `YIR_API_KEY`, Stripe keys and webhook secret, `BETTER_AUTH_SECRET`, `GUEST_COOKIE_SECRET`, Google OAuth, `APP_URL`. No `UPSTREAM_MOCK` in production.
+3. Secrets: `YIR_API_KEY`, `CREEM_API_KEY` and `CREEM_WEBHOOK_SECRET`, `BETTER_AUTH_SECRET`, `GUEST_COOKIE_SECRET`, Google OAuth, `APP_URL`. No `UPSTREAM_MOCK` in production.
 4. Follow `docs/site-launch.md`; `pnpm check` blocks until the placeholders above are replaced. Then `pnpm run deploy`.

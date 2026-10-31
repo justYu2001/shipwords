@@ -401,6 +401,53 @@ describe('subscriptions', () => {
     const row = await db.query.subscriptions.findFirst({ where: eq(subscriptions.subscriptionRef, 'sub_o') });
     expect(row?.status).toBe('canceled');
   });
+
+  it('a renewal webhook grants the period once and moves the subscription period forward', async () => {
+    const userId = uid();
+    const start = Date.now() - 1000;
+    const subscription = (periodStart: number): SubscriptionFact => ({
+      provider: 'fake',
+      subscriptionRef: 'sub_r',
+      userId,
+      productId: 'pro_month',
+      status: 'active',
+      currentPeriodStart: periodStart,
+      currentPeriodEnd: periodStart + 30 * DAY,
+      cancelAtPeriodEnd: false,
+      fetchedAt: ++clock,
+    });
+    const period = (ref: string, from: number) =>
+      packPayment(userId, ref, {
+        productId: 'pro_month',
+        amount: 2000,
+        subscriptionRef: 'sub_r',
+        periodStart: from,
+        periodEnd: from + 30 * DAY,
+      });
+    provider.subscriptions.set('sub_r', subscription(start));
+    provider.payments.set('tran_1', period('tran_1', start));
+    const first: WebhookTrigger = {
+      eventId: 'evt_r1',
+      type: 'subscription.paid',
+      target: { kind: 'subscription_payment', ref: 'tran_1', subscriptionRef: 'sub_r' },
+    };
+    expect((await handleWebhook(deps, webhook(first))).status).toBe(200);
+    // Redelivered with a new event ID (a manual resend): still one grant.
+    expect((await handleWebhook(deps, webhook({ ...first, eventId: 'evt_r1b' }))).status).toBe(200);
+    expect((await getBalance(db, userId)).available).toBe(300);
+
+    provider.subscriptions.set('sub_r', subscription(start + 30 * DAY));
+    provider.payments.set('tran_2', period('tran_2', start + 30 * DAY));
+    const second: WebhookTrigger = {
+      eventId: 'evt_r2',
+      type: 'subscription.paid',
+      target: { kind: 'subscription_payment', ref: 'tran_2', subscriptionRef: 'sub_r' },
+    };
+    expect((await handleWebhook(deps, webhook(second))).status).toBe(200);
+    expect((await getBalance(db, userId)).available).toBe(600);
+    const row = await db.query.subscriptions.findFirst({ where: eq(subscriptions.subscriptionRef, 'sub_r') });
+    expect(row?.currentPeriodEnd).toBe(start + 60 * DAY);
+  });
 });
 
 describe('checkout', () => {

@@ -183,14 +183,20 @@ export function AccountPanel({
             {data.orders.map((order) => (
               <li key={order.id}>
                 {date(order.createdAt)} · {productName(order.productId)} ·{' '}
-                {money(order.amountPaid, order.currency)} · {orderStatus(order)} ·{' '}
-                <a
-                  href={`/api/billing/receipt?order=${encodeURIComponent(order.id)}`}
-                  target="_blank"
-                  rel="noopener"
-                >
-                  {m.common_account_receipt()}
-                </a>
+                {money(order.amountPaid, order.currency)} · {orderStatus(order)}
+                {/* Creem emails receipts and has no receipt page to link to. */}
+                {site.billing.provider !== 'creem' && (
+                  <>
+                    {' · '}
+                    <a
+                      href={`/api/billing/receipt?order=${encodeURIComponent(order.id)}`}
+                      target="_blank"
+                      rel="noopener"
+                    >
+                      {m.common_account_receipt()}
+                    </a>
+                  </>
+                )}
               </li>
             ))}
           </ul>

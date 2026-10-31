@@ -115,7 +115,7 @@ export function createSite(root, options) {
 - **Target keyword**: (main keyword and search intent)
 - **Competitors**: (top-ranking sites and what they lack)
 - **Launch date**:
-- **Payment account**: (Stripe or PayPal, legal entity, account name)
+- **Payment account**: (Creem, Stripe or PayPal, legal entity, account name)
 - **Metrics**: GA4 property ID, Rybbit siteId (analytics in site.config.ts), GSC
 - **Created**: ${today}
 
@@ -164,5 +164,5 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(import.met
        pnpm wrangler r2 bucket create ${slug}-outputs
   3. Local secrets: copy .dev.vars.example to ~/.config/shipwords/${slug}.dev.vars, fill it in, then pnpm setup:worktree
   4. pnpm db:generate && pnpm db:migrate:local && pnpm dev
-  5. Before launch, go through docs/site-launch.md (domain ${domain}, Stripe, Email, reCAPTCHA).`);
+  5. Before launch, go through docs/site-launch.md (domain ${domain}, payments, Email, reCAPTCHA).`);
 }

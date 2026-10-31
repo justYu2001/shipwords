@@ -1,5 +1,6 @@
 import { env as workerEnv } from 'cloudflare:workers';
 import { createAuth } from './auth/server';
+import { CreemProvider } from './billing/creem';
 import {
   activeSubscription,
   type BillingDeps,
@@ -36,6 +37,15 @@ function required(env: CoreEnv, name: keyof CoreEnv): string {
 }
 
 function createProvider(site: SiteConfig, env: CoreEnv): PaymentProvider {
+  if (site.billing.provider === 'creem') {
+    return new CreemProvider({
+      apiKey: required(env, 'CREEM_API_KEY'),
+      // Like PayPal's webhook ID, the secret exists only once the webhook is created; it's checked only when verifying signatures.
+      webhookSecret: env.CREEM_WEBHOOK_SECRET ?? '',
+      siteId: site.id,
+      products: site.products,
+    });
+  }
   if (site.billing.provider === 'paypal') {
     return new PayPalProvider({
       clientId: required(env, 'PAYPAL_CLIENT_ID'),

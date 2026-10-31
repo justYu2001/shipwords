@@ -23,7 +23,7 @@ function creditsFor(site: SiteConfig, fact: PaymentFact) {
   const product = fact.productId ? findProduct(site, fact.productId) : undefined;
   if (!product) return null;
   // Untrusted metadata (PayPal custom_id) could be attached to any payment, so it must pay at least the list price in the list currency.
-  // Trusted metadata skips this: Stripe promotion codes legitimately charge less.
+  // Trusted metadata skips this: Stripe promotion codes and Creem discount codes legitimately charge less.
   if (
     !fact.metadataTrusted &&
     (fact.currency !== product.price.currency.toLowerCase() || fact.amount < product.price.amount)
@@ -270,6 +270,13 @@ export async function reconcileTarget(
     case 'subscription': {
       const fact = await provider.fetchSubscription(target.ref);
       return fact ? applySubscription(ctx, fact) : 'ignored';
+    }
+    case 'subscription_payment': {
+      const [subscription, payment] = await Promise.all([
+        provider.fetchSubscription(target.subscriptionRef),
+        provider.fetchPayment(target.ref),
+      ]);
+      return applyCheckout(ctx, { orderId: null, subscription, payment });
     }
   }
 }
