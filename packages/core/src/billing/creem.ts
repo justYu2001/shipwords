@@ -393,7 +393,9 @@ export class CreemProvider implements PaymentProvider {
 
   private async subscriptionOwner(subscription: CreemSubscription): Promise<OurMetadata> {
     const meta = readMetadata(subscription.metadata);
-    const productId = meta.productId ?? this.productIdFor(idOf(subscription.product));
+    // The product is whatever Creem bills now, not what the metadata named at checkout: a plan change in the portal
+    // keeps the old metadata. A Creem product with no refs.creem entry maps to nothing.
+    const productId = this.productIdFor(idOf(subscription.product));
     if (meta.userId) return { ...meta, productId };
     const customer =
       typeof subscription.customer === 'string'

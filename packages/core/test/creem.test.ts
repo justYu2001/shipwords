@@ -471,10 +471,27 @@ describe('CreemProvider', () => {
         json: { id: 'sub_1', product: 'prod_pro', customer: 'cust_1', status: 'active', metadata: meta },
       }),
     });
+    // The metadata still names the product bought at checkout; the product Creem bills now wins (a plan change keeps old metadata).
     expect(await new CreemProvider(options, fetcher).fetchPayment('tran_2')).toMatchObject({
       userId: 'u1',
-      productId: 'pack_100',
+      productId: 'pro_month',
     });
+  });
+
+  it('a subscription billed for a Creem product missing from refs.creem maps to no product', async () => {
+    const { fetcher } = fakeCreem({
+      'GET /v1/transactions': () => ({ json: transaction({ id: 'tran_2', subscription: 'sub_1' }) }),
+      'GET /v1/subscriptions': () => ({
+        json: {
+          id: 'sub_1',
+          product: 'prod_unknown',
+          customer: 'cust_1',
+          status: 'active',
+          metadata: { ...meta, productId: 'pro_month' },
+        },
+      }),
+    });
+    expect((await new CreemProvider(options, fetcher).fetchPayment('tran_2'))?.productId).toBeNull();
   });
 
   it('without subscription metadata: owner from this site’s customer external_id, product from refs.creem', async () => {

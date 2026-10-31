@@ -20,7 +20,9 @@ Adds a third `PaymentProvider`, Creem (merchant of record), and switches the tem
   - `subscription.paid` → that period's transaction;
   - other `subscription.*` → the subscription;
   - `refund.created` / `dispute.created` → the transaction when the payment belongs to a subscription, else the checkout (one-time transactions carry no metadata, the checkout does).
-- Owner of a subscription transaction: subscription `metadata`, falling back to the customer's `external_id` (only if it carries this site's ID) and the product via `refs.creem`.
+- Subscription transactions and subscriptions:
+  - User: from subscription `metadata`, falling back to the customer's `external_id` (only if it carries this site's ID).
+  - Product: always the Creem product currently billed, mapped through `refs.creem`. A plan change in the portal keeps the old metadata, so metadata never names the product.
 
 ## Known gaps
 
