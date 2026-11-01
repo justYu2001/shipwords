@@ -498,6 +498,77 @@ describe('checkout', () => {
     expect((await getBalance(db, currentUser.id)).available).toBe(100);
   });
 
+  it('a refund event naming only the charge re-reads a payment that cannot be read alone through its order checkout', async () => {
+    currentUser = { id: uid(), email: 'r@example.com', name: 'R' };
+    const response = await handleCheckout(
+      deps,
+      new Request('https://test.example/api/billing/checkout', {
+        method: 'POST',
+        body: JSON.stringify({ productId: 'pack_100' }),
+      }),
+    );
+    const { orderId } = (await response.json()) as { orderId: string };
+    const ref = `tran_${orderId}`;
+    // Like a Creem one-time transaction: only the checkout carries the owner, so provider.payments stays empty.
+    const paid = packPayment(currentUser.id, ref, { orderId, chargeRef: ref });
+    provider.checkouts.set(`cs_${orderId}`, { orderId, subscription: null, payment: paid });
+    await handleWebhook(
+      deps,
+      webhook({ eventId: `evt_c_${orderId}`, type: 't', target: { kind: 'checkout', ref: `cs_${orderId}` } }),
+    );
+    expect((await getBalance(db, currentUser.id)).available).toBe(100);
+
+    provider.checkouts.set(`cs_${orderId}`, {
+      orderId,
+      subscription: null,
+      payment: { ...paid, amountRefunded: 1000, fetchedAt: ++clock },
+    });
+    const refund = await handleWebhook(
+      deps,
+      webhook({ eventId: `evt_r_${orderId}`, type: 't', target: { kind: 'charge', ref } }),
+    );
+    expect(refund.status).toBe(200);
+    expect((await getBalance(db, currentUser.id)).available).toBe(0);
+
+    // A charge we never stored has no order to go through, so nothing is written.
+    const before = await db.$count(payments);
+    const unknown = await handleWebhook(
+      deps,
+      webhook({ eventId: `evt_u_${orderId}`, type: 't', target: { kind: 'charge', ref: 'tran_unknown' } }),
+    );
+    expect(unknown.status).toBe(200);
+    expect(await db.$count(payments)).toBe(before);
+  });
+
+  it('the order-checkout fallback applies only the payment that was refunded, never another one it leads to', async () => {
+    currentUser = { id: uid(), email: 'p@example.com', name: 'P' };
+    const response = await handleCheckout(
+      deps,
+      new Request('https://test.example/api/billing/checkout', {
+        method: 'POST',
+        body: JSON.stringify({ productId: 'pack_100' }),
+      }),
+    );
+    const { orderId } = (await response.json()) as { orderId: string };
+    const userId = currentUser.id;
+    // A later payment stored under the same order (a PayPal renewal copies the order ID), not readable on its own right now.
+    await applyPayment(ctx(), packPayment(userId, `tx5_${orderId}`, { orderId, chargeRef: `tx5_${orderId}` }));
+    // The order's checkout leads to a different payment (the first charge), now refunded.
+    provider.checkouts.set(`cs_${orderId}`, {
+      orderId,
+      subscription: null,
+      payment: packPayment(userId, `tx1_${orderId}`, { orderId, amountRefunded: 1000 }),
+    });
+    const before = await db.$count(payments);
+    const refund = await handleWebhook(
+      deps,
+      webhook({ eventId: `evt_tx5_${orderId}`, type: 't', target: { kind: 'charge', ref: `tx5_${orderId}` } }),
+    );
+    expect(refund.status).toBe(200);
+    expect(await db.$count(payments)).toBe(before);
+    expect((await getBalance(db, userId)).available).toBe(100);
+  });
+
   it('other users orders are not found', async () => {
     currentUser = { id: uid(), email: 'c@example.com', name: 'C' };
     const response = await handleCheckout(

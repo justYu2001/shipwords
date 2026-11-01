@@ -55,17 +55,22 @@ function transaction(overrides: Partial<CreemTransaction> = {}): CreemTransactio
 
 describe('Creem field mapping', () => {
   it('metadata reads our three fields; anything else reads as empty', () => {
-    expect(readMetadata({ userId: 'u1', productId: 'p', orderId: 'o', extra: 1 })).toEqual({
+    expect(readMetadata({ site: 's1', userId: 'u1', productId: 'p', orderId: 'o', extra: 1 }, 's1')).toEqual({
       userId: 'u1',
       productId: 'p',
       orderId: 'o',
     });
-    expect(readMetadata(null)).toEqual({ userId: null, productId: null, orderId: null });
-    expect(readMetadata({ userId: 42, productId: '' })).toEqual({
+    expect(readMetadata({ site: 's1', userId: 42, productId: '' }, 's1')).toEqual({
       userId: null,
       productId: null,
       orderId: null,
     });
+  });
+
+  it('metadata written by another site, or by no site, is not ours', () => {
+    expect(readMetadata({ site: 's2', userId: 'u1', productId: 'p', orderId: 'o' }, 's1')).toBeNull();
+    expect(readMetadata({ userId: 'u1', productId: 'p', orderId: 'o' }, 's1')).toBeNull();
+    expect(readMetadata(null, 's1')).toBeNull();
   });
 
   it('a one-time transaction: amount paid incl. tax, lower-case currency, no period', () => {
@@ -198,7 +203,16 @@ describe('Creem field mapping', () => {
         ref: 'ch_1',
       },
     );
-    expect(webhookTarget('refund.created', { id: 'ref_1', transaction: { id: 'tran_1' } })).toBeNull();
+    // No checkout ID: the transaction, which reconcile finds among stored payments and re-reads through its order.
+    expect(webhookTarget('refund.created', { id: 'ref_1', transaction: { id: 'tran_1' } })).toEqual({
+      kind: 'charge',
+      ref: 'tran_1',
+    });
+    expect(webhookTarget('dispute.created', { id: 'dsp_1', transaction: 'tran_1' })).toEqual({
+      kind: 'charge',
+      ref: 'tran_1',
+    });
+    expect(webhookTarget('refund.created', { id: 'ref_1' })).toBeNull();
     expect(webhookTarget('credits.granted', { id: 'x' })).toBeNull();
     expect(webhookTarget('checkout.completed', null)).toBeNull();
   });
@@ -366,7 +380,7 @@ describe('CreemProvider', () => {
     });
   });
 
-  const meta = { userId: 'u1', productId: 'pack_100', orderId: 'ord_1' };
+  const meta = { site: 'site1', userId: 'u1', productId: 'pack_100', orderId: 'ord_1' };
 
   it('completed one-time checkout: payment from the order transaction with checkout metadata', async () => {
     const { fetcher } = fakeCreem({
@@ -415,10 +429,38 @@ describe('CreemProvider', () => {
     expect(fact.payment?.productId).toBeNull();
   });
 
+  it('another site’s checkout in a shared Creem store maps to nothing, not even its order', async () => {
+    const { calls, fetcher } = fakeCreem({
+      'GET /v1/checkouts': () => ({
+        json: {
+          id: 'ch_1',
+          status: 'completed',
+          product: 'prod_pack',
+          request_id: 'ord_other',
+          order: { id: 'o', transaction: 'tran_1' },
+          metadata: { ...meta, site: 'site2', orderId: 'ord_other' },
+        },
+      }),
+      'GET /v1/transactions': () => ({ json: transaction() }),
+    });
+    expect(await new CreemProvider(options, fetcher).fetchCheckout('ch_1')).toEqual({
+      orderId: null,
+      payment: null,
+      subscription: null,
+    });
+    expect(calls).toHaveLength(1);
+  });
+
   it('an unfinished checkout has no payment or subscription yet', async () => {
     const { calls, fetcher } = fakeCreem({
       'GET /v1/checkouts': () => ({
-        json: { id: 'ch_1', status: 'pending', product: 'prod_pack', request_id: 'ord_9' },
+        json: {
+          id: 'ch_1',
+          status: 'pending',
+          product: 'prod_pack',
+          request_id: 'ord_9',
+          metadata: { ...meta, orderId: null },
+        },
       }),
     });
     expect(await new CreemProvider(options, fetcher).fetchCheckout('ch_1')).toEqual({
@@ -509,6 +551,24 @@ describe('CreemProvider', () => {
     });
     const otherSite = fakeCreem(routes('site2:u7'));
     expect((await new CreemProvider(options, otherSite.fetcher).fetchPayment('tran_2'))?.userId).toBeNull();
+  });
+
+  it('subscription metadata from another site is ignored: the owner comes only from this site’s external_id', async () => {
+    const { fetcher } = fakeCreem({
+      'GET /v1/transactions': () => ({ json: transaction({ id: 'tran_2', subscription: 'sub_1' }) }),
+      'GET /v1/subscriptions': () => ({
+        json: {
+          id: 'sub_1',
+          product: 'prod_pro',
+          customer: 'cust_1',
+          status: 'active',
+          metadata: { ...meta, site: 'site2', userId: 'u_other' },
+        },
+      }),
+      'GET /v1/customers': () => ({ json: { id: 'cust_1', external_id: 'site2:u_other' } }),
+    });
+    const fact = await new CreemProvider(options, fetcher).fetchPayment('tran_2');
+    expect(fact).toMatchObject({ userId: null, orderId: null });
   });
 
   it('a one-time transaction cannot be read on its own', async () => {

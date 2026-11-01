@@ -100,8 +100,13 @@ const time = (value: string | null | undefined) => {
 /** Creem spells statuses in camelCase, snake_case and plain words across endpoints and samples ("chargedBack", "chargeback"). */
 const normalize = (status: string) => status.toLowerCase().replace(/[_\- ]/g, '');
 
-export function readMetadata(metadata: unknown): OurMetadata {
+/**
+ * Our metadata, or null when it was written by another site. Sites can share one Creem store, and every webhook endpoint
+ * receives every event in it, so metadata only counts when its site is this one.
+ */
+export function readMetadata(metadata: unknown, siteId: string): OurMetadata | null {
   const meta = isRecord(metadata) ? metadata : {};
+  if (meta.site !== siteId) return null;
   return { userId: str(meta.userId), productId: str(meta.productId), orderId: str(meta.orderId) };
 }
 
@@ -182,7 +187,9 @@ export function webhookTarget(type: string, object: unknown): WebhookTarget | nu
     const transaction = idOf(object.transaction);
     if (transaction && idOf(object.subscription)) return { kind: 'payment', ref: transaction };
     const checkout = idOf(object.checkout);
-    return checkout ? { kind: 'checkout', ref: checkout } : null;
+    if (checkout) return { kind: 'checkout', ref: checkout };
+    // No checkout ID in the body: reconcile finds the payment by its transaction and re-reads it through its order's checkout.
+    return transaction ? { kind: 'charge', ref: transaction } : null;
   }
   return null;
 }
@@ -331,7 +338,9 @@ export class CreemProvider implements PaymentProvider {
     const checkout = await this.call<CreemCheckout>('GET', '/v1/checkouts', {
       query: { checkout_id: checkoutRef },
     });
-    const meta = readMetadata(checkout.metadata);
+    const meta = readMetadata(checkout.metadata, this.options.siteId);
+    // Another site's checkout: its request_id is that site's order, so nothing here is ours.
+    if (!meta) return { orderId: null, payment: null, subscription: null };
     const orderId = meta.orderId ?? str(checkout.request_id);
     if (normalize(checkout.status) !== 'completed') return { orderId, payment: null, subscription: null };
     // The product actually sold must be the one the metadata names; otherwise refuse to map it rather than grant the wrong credits.
@@ -354,7 +363,10 @@ export class CreemProvider implements PaymentProvider {
     };
   }
 
-  /** Subscription transactions only: a one-time transaction has no owner of its own and is read through its checkout. */
+  /**
+   * Subscription transactions only: a one-time transaction has no owner of its own and is read through its checkout
+   * (for a refund without a checkout ID, reconcile uses the stored order's checkout).
+   */
   async fetchPayment(paymentRef: string): Promise<PaymentFact | null> {
     const transaction = await this.getTransaction(paymentRef);
     if (!transaction.subscription) return null;
@@ -392,18 +404,22 @@ export class CreemProvider implements PaymentProvider {
   }
 
   private async subscriptionOwner(subscription: CreemSubscription): Promise<OurMetadata> {
-    const meta = readMetadata(subscription.metadata);
+    const meta = readMetadata(subscription.metadata, this.options.siteId);
     // The product is whatever Creem bills now, not what the metadata named at checkout: a plan change in the portal
     // keeps the old metadata. A Creem product with no refs.creem entry maps to nothing.
     const productId = this.productIdFor(idOf(subscription.product));
-    if (meta.userId) return { ...meta, productId };
+    if (meta?.userId) return { ...meta, productId };
     const customer =
       typeof subscription.customer === 'string'
         ? await this.call<CreemCustomer>('GET', '/v1/customers', {
             query: { customer_id: subscription.customer },
           })
         : subscription.customer;
-    return { userId: this.userIdFromExternalId(customer.external_id), productId, orderId: meta.orderId };
+    return {
+      userId: this.userIdFromExternalId(customer.external_id),
+      productId,
+      orderId: meta?.orderId ?? null,
+    };
   }
 
   private getTransaction(id: string) {

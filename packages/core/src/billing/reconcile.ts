@@ -245,6 +245,13 @@ export async function applyCheckout(ctx: ReconcileContext, fact: CheckoutFact): 
   return outcome;
 }
 
+async function orderCheckoutRef(db: Db, providerName: string, orderId: string) {
+  const order = await db.query.orders.findFirst({
+    where: and(eq(orders.id, orderId), eq(orders.provider, providerName)),
+  });
+  return order?.checkoutRef ?? null;
+}
+
 /** Fetches the latest state of the object a webhook points to and stores it. */
 export async function reconcileTarget(
   ctx: ReconcileContext,
@@ -265,7 +272,14 @@ export async function reconcileTarget(
       const fact = known
         ? await provider.fetchPayment(known.paymentRef)
         : await provider.fetchPaymentByCharge(target.ref);
-      return fact ? applyPayment(ctx, fact) : 'ignored';
+      if (fact) return applyPayment(ctx, fact);
+      // Some payments can only be read through their checkout (Creem one-time transactions carry no owner): use the order's.
+      // Apply only the payment asked about: an order's checkout can lead elsewhere (PayPal: a subscription's first charge).
+      if (!known?.orderId) return 'ignored';
+      const checkoutRef = await orderCheckoutRef(db, provider.name, known.orderId);
+      if (!checkoutRef) return 'ignored';
+      const { payment } = await provider.fetchCheckout(checkoutRef);
+      return payment?.paymentRef === known.paymentRef ? applyPayment(ctx, payment) : 'ignored';
     }
     case 'subscription': {
       const fact = await provider.fetchSubscription(target.ref);

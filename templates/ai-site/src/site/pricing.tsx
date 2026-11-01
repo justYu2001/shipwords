@@ -8,6 +8,9 @@ import { m } from '~/paraglide/messages.js';
 import { openSignIn } from '~/site/sign-in';
 import site from '../../site.config';
 
+/** Typed as any Product, not this config's literal kinds, so the subscription branches stay valid when a site sells only packs. */
+const products: readonly Product[] = site.products;
+
 // No separate pricing page: buy from the home #pricing section; other entry points (nav, low credits, account) open a dialog in place.
 // Change prices in site.config.ts only.
 
@@ -97,7 +100,7 @@ export function Plans({
   return (
     <>
       <div className="plans">
-        {site.products.map((product) => (
+        {products.map((product) => (
           <article key={product.id} className="plan">
             <Heading>{product.name}</Heading>
             <p className="price">{formatPrice(product)}</p>
