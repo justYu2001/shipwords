@@ -1,4 +1,5 @@
 import { openBillingPortal, useAccount } from '@shipwords/core/react/account';
+import type { Product } from '@shipwords/core/site';
 import { type PublicJob, useGeneration } from '@shipwords/jobs/react';
 import { getRouteApi, Link } from '@tanstack/react-router';
 import { type MouseEvent, type ReactNode, useEffect, useRef, useState } from 'react';
@@ -12,7 +13,8 @@ import site from '../../site.config';
 
 const OPEN_EVENT = 'site:account';
 /** With credit packs only there is no subscription to manage, so the Customer Portal link is hidden. */
-const SELLS_SUBSCRIPTIONS = site.products.some((p) => p.kind === 'subscription');
+const products: readonly Product[] = site.products;
+const SELLS_SUBSCRIPTIONS = products.some((p) => p.kind === 'subscription');
 
 export function openAccount() {
   window.dispatchEvent(new Event(OPEN_EVENT));
@@ -183,14 +185,20 @@ export function AccountPanel({
             {data.orders.map((order) => (
               <li key={order.id}>
                 {date(order.createdAt)} · {productName(order.productId)} ·{' '}
-                {money(order.amountPaid, order.currency)} · {orderStatus(order)} ·{' '}
-                <a
-                  href={`/api/billing/receipt?order=${encodeURIComponent(order.id)}`}
-                  target="_blank"
-                  rel="noopener"
-                >
-                  {m.common_account_receipt()}
-                </a>
+                {money(order.amountPaid, order.currency)} · {orderStatus(order)}
+                {/* Creem emails receipts and has no receipt page to link to. */}
+                {site.billing.provider !== 'creem' && (
+                  <>
+                    {' · '}
+                    <a
+                      href={`/api/billing/receipt?order=${encodeURIComponent(order.id)}`}
+                      target="_blank"
+                      rel="noopener"
+                    >
+                      {m.common_account_receipt()}
+                    </a>
+                  </>
+                )}
               </li>
             ))}
           </ul>

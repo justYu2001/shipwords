@@ -42,7 +42,7 @@ function PrivacyPage() {
       <h2>{m.legal_privacy_processors_heading()}</h2>
       <ul>
         <li>{m.legal_privacy_processors_cloudflare()}</li>
-        <li>{m.legal_privacy_processors_stripe()}</li>
+        <li>{m.legal_privacy_processors_creem()}</li>
         <li>{m.legal_privacy_processors_google()}</li>
         <li>{m.legal_privacy_processors_ai()}</li>
       </ul>

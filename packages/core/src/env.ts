@@ -21,6 +21,9 @@ export interface CoreEnv {
   PAYPAL_WEBHOOK_ID?: string;
   /** "sandbox" uses the PayPal sandbox; anything else uses live. */
   PAYPAL_ENV?: string;
+  /** A key starting creem_test_ uses Creem test mode; any other key is live. */
+  CREEM_API_KEY?: string;
+  CREEM_WEBHOOK_SECRET?: string;
 
   /** reCAPTCHA (Google Cloud): the client uses the site key; the server calls createAssessment with the project ID and API key. */
   RECAPTCHA_SITE_KEY: string;

@@ -66,7 +66,9 @@ export type WebhookTarget =
   | { kind: 'checkout'; ref: string }
   | { kind: 'payment'; ref: string }
   | { kind: 'charge'; ref: string }
-  | { kind: 'subscription'; ref: string };
+  | { kind: 'subscription'; ref: string }
+  /** A renewal: store the period's payment and refresh the subscription (its period end decides whether it's live). */
+  | { kind: 'subscription_payment'; ref: string; subscriptionRef: string };
 
 export interface WebhookTrigger {
   eventId: string;

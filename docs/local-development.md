@@ -4,7 +4,7 @@
 
 1. Node 24 (see `.nvmrc`) and pnpm 10 (`corepack enable`). Keep the pnpm store on the same disk as the repo so hard links work.
 2. `pnpm install`
-3. Keep each site's local secrets outside the repo: `~/.config/shipwords/<site-dir>.dev.vars` (set `SHIPWORDS_SECRETS` to use another directory). Fill it from the site's `.dev.vars.example`, using test keys only (`sk_test_`, PayPal sandbox, a test reCAPTCHA key).
+3. Keep each site's local secrets outside the repo: `~/.config/shipwords/<site-dir>.dev.vars` (set `SHIPWORDS_SECRETS` to use another directory). Fill it from the site's `.dev.vars.example`, using test keys only (`creem_test_`, `sk_test_`, PayPal sandbox, a test reCAPTCHA key).
 4. `pnpm setup:worktree`: copies the secrets into each site as `.dev.vars` and sets `APP_URL` to this worktree's dev port.
 
 A [Yir API key](https://yir.ai/?utm_source=shipwords&utm_medium=docs) (`YIR_API_KEY`) is only needed for real generations; see the mock upstream below.
@@ -27,6 +27,13 @@ pnpm dev                # the site's devPort from package.json; a worktree adds 
   - The compose container (ffmpeg on Cloudflare Containers) needs Docker on a Linux or macOS host. Test compose-based generation there or on a preview deployment.
 - If `localhost` resolves to `::1` and is blocked in a sandbox, run `pnpm dev --host 127.0.0.1` and send `Origin: http://localhost:<port>` (Better Auth checks the origin).
 - Google sign-in locally must use `localhost`, not `127.0.0.1`, and the origin and callback must be registered on your OAuth client.
+
+## Creem webhooks locally
+
+- In the Creem dashboard switch to test mode and copy a test API key (`creem_test_…`) into `CREEM_API_KEY`.
+- Creem has no CLI forwarder; open a Cloudflare quick tunnel and allow its host, as in the PayPal section below.
+- Add a test-mode webhook at `<tunnel URL>/api/webhooks/creem` with the events listed in the [launch handbook](site-launch.md), and put its signing secret into `CREEM_WEBHOOK_SECRET`. Quick tunnel URLs change on every run, so update the webhook each time.
+- Without webhooks the return page still syncs the order once, so credit packs work; refunds and subscription renewals need the webhook.
 
 ## Stripe webhooks locally
 

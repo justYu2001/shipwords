@@ -30,7 +30,7 @@ shipwords 是一套免费、MIT 开源的新词站群框架，用来在 Cloudfla
 **开箱就能收钱。** 每个站都自带：
 
 - Google 和邮箱登录、账户页
-- Stripe 和 PayPal、积分包与订阅、订单与退款
+- Creem（记录商户）、Stripe 或 PayPal；积分包与订阅、订单与退款
 - 邮件通知
 - 游客免费试用与防刷（reCAPTCHA v3）
 - 隐私、条款、退款、DMCA 页面
@@ -52,7 +52,7 @@ Agent 会克隆仓库、生成站点并在本地跑起来。它遵守的规则�
 
 ## 快速开始
 
-需要 Node 24（见 `.nvmrc`）、pnpm 10（`corepack enable`），Windows 上用 Git Bash 或 WSL。正式上线还需要 Cloudflare 账号，以及 Stripe 或 PayPal 账号。
+需要 Node 24（见 `.nvmrc`）、pnpm 10（`corepack enable`），Windows 上用 Git Bash 或 WSL。正式上线还需要 Cloudflare 账号，以及 Creem 账号（或 Stripe、PayPal）。
 
 1. Fork 或克隆本仓库，然后安装依赖：
 
@@ -77,7 +77,7 @@ Agent 会克隆仓库、生成站点并在本地跑起来。它遵守的规则�
 
    示例文件不改也能跑：邮箱登录可用（验证码打印在 dev server 的终端里），新账户有注册赠送积分，生成走模拟上游（`UPSTREAM_MOCK=1`），不需要任何模型 key。需要时再补：
    - **真实生成**：填 [Yir API key](https://yir.ai/?utm_source=shipwords&utm_medium=readme)，并关掉 `UPSTREAM_MOCK`。
-   - **购买积分**：填 Stripe 测试 key（`sk_test_…`），然后在站点目录运行 `node ../../tools/stripe-listen.mjs` 转发 webhook。
+   - **购买积分**：填 Creem 测试 key（`creem_test_…`），并在 `refs.creem` 里填测试商品；webhook 需要隧道，见[本地开发](docs/local-development.md)。
    - **游客免费试用**：填 reCAPTCHA key。不填的话，访客要先登录才能生成。
    - **Google 登录**：一个以 `http://localhost:<port>` 为来源的 Google OAuth 客户端。可选，不填也能用邮箱登录。
 
@@ -97,21 +97,21 @@ Agent 会克隆仓库、生成站点并在本地跑起来。它遵守的规则�
 
 - 域名（Cloudflare Registrar 按成本价出售）。
 - Cloudflare 用量费。需要把多段视频拼接起来的站会用到 Cloudflare Containers，要开 Workers Paid 套餐。
-- 每笔订单的 Stripe 或 PayPal 手续费。
+- 每笔订单的支付手续费（Creem、Stripe 或 PayPal）。
 - Yir 上按次计费的模型费用。每个任务的成本上限在 `src/models.server.ts` 里设定。
 
 ## 仓库结构
 
-| 目录                       | 内容                                                                                                                                                                    |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `packages/core`            | D1 + Drizzle、幂等写入的积分账本、Stripe 与 PayPal 计费（积分包、订阅、退款、争议）、Better Auth、游客配额 + reCAPTCHA v3、SEO/GEO 工具、统计代理、headless React hooks |
-| `packages/jobs`            | 基于 Workflows 的生成任务运行时：单向任务状态机、自动退款、上游适配接口、Yir 适配（`@yir-ai/sdk`）、本地开发用的模拟上游、可选的 ffmpeg 拼接容器                        |
-| `templates/ai-site`        | 一个完整可用的 AI 图像站，由 `pnpm new-site` 复制：首页、定价、账户、登录、政策页、`sitemap.xml`、`robots.txt`、`llms.txt`                                              |
-| `sites/<site>`             | 你的站，一个关键词一个，各自单独部署                                                                                                                                    |
-| `sites/tinydeskai-example` | tinydeskai.io 的完整源码（视频特效：照片槽位、整段一次编辑、结果检查、ffmpeg 拼接、内容页）                                                                             |
-| `apps/<sidecar>`           | 可选的小型 Worker，不属于任何单个站                                                                                                                                     |
-| `tools/`                   | `new-site` 脚手架、`check-site` 上线检查、`list-sites`、worktree 初始化、dev 端口、Stripe webhook 转发（只用 Node 内置模块，带测试）                                    |
-| `docs/`                    | 架构、本地开发、上线手册（英文）                                                                                                                                        |
+| 目录                       | 内容                                                                                                                                                                           |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `packages/core`            | D1 + Drizzle、幂等写入的积分账本、Creem、Stripe 与 PayPal 计费（积分包、订阅、退款、争议）、Better Auth、游客配额 + reCAPTCHA v3、SEO/GEO 工具、统计代理、headless React hooks |
+| `packages/jobs`            | 基于 Workflows 的生成任务运行时：单向任务状态机、自动退款、上游适配接口、Yir 适配（`@yir-ai/sdk`）、本地开发用的模拟上游、可选的 ffmpeg 拼接容器                               |
+| `templates/ai-site`        | 一个完整可用的 AI 图像站，由 `pnpm new-site` 复制：首页、定价、账户、登录、政策页、`sitemap.xml`、`robots.txt`、`llms.txt`                                                     |
+| `sites/<site>`             | 你的站，一个关键词一个，各自单独部署                                                                                                                                           |
+| `sites/tinydeskai-example` | tinydeskai.io 的完整源码（视频特效：照片槽位、整段一次编辑、结果检查、ffmpeg 拼接、内容页）                                                                                    |
+| `apps/<sidecar>`           | 可选的小型 Worker，不属于任何单个站                                                                                                                                            |
+| `tools/`                   | `new-site` 脚手架、`check-site` 上线检查、`list-sites`、worktree 初始化、dev 端口、Stripe webhook 转发（只用 Node 内置模块，带测试）                                           |
+| `docs/`                    | 架构、本地开发、上线手册（英文）                                                                                                                                               |
 
 每个站是一个 TanStack Start + React 19 应用，跑在独立的 Cloudflare Worker 上，使用 D1、R2 和 Workflows。
 

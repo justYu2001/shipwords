@@ -43,7 +43,18 @@ Write each secret with `pnpm wrangler secret put <NAME>`; names are in `.dev.var
 
 ## 5. Payments (confirm)
 
-Each site picks one provider in `site.config.ts` under `billing.provider`: `stripe` or `paypal`. Configure only that provider's secrets. Use a separate payment account per site where possible.
+Each site picks one provider in `site.config.ts` under `billing.provider`: `creem` (the template default), `stripe` or `paypal`. Configure only that provider's secrets. Use a separate payment account per site where possible.
+
+### Creem
+
+- Creem is the merchant of record: it collects and remits sales tax and VAT and appears as the seller on receipts. Say so in the privacy and refund pages.
+- In the Creem dashboard create one product per entry in `site.config.ts`, with the same price, currency and (for subscriptions) billing period, and put each product ID into `refs: { creem: 'prod_...' }`. Credits are granted from `site.config.ts`, so a dashboard price that differs is sold at the dashboard price. To change a price, create a new product and swap the ID.
+- Create a webhook at `https://<domain>/api/webhooks/creem` (Developers → Webhooks) with these events:
+  `checkout.completed`, `refund.created`, `dispute.created`.
+  With subscription products, also add `subscription.paid`, `subscription.active`, `subscription.update`, `subscription.canceled`, `subscription.scheduled_cancel`, `subscription.past_due`, `subscription.paused`, `subscription.expired`, `subscription.unpaid`, `subscription.trialing`.
+- Write `CREEM_API_KEY` and `CREEM_WEBHOOK_SECRET`. A `creem_test_…` key uses test mode; production needs the live key.
+- "Manage subscription" opens Creem's customer portal. Creem has no receipt link API, so the account page shows no receipt link; Creem emails receipts.
+- Chargebacks claw credits back once Creem marks the transaction charged back; Creem exposes no open or won dispute state (see [the live note](live/creem-billing.md)).
 
 ### Stripe
 
@@ -72,7 +83,7 @@ Each site picks one provider in `site.config.ts` under `billing.provider`: `stri
 ## 6. Pre-launch checks
 
 - `pnpm --filter "./sites/<dir>" check` passes (build, required routes, no template placeholders, no cross-site imports).
-- Locally in Stripe test mode (or PayPal sandbox), walk the whole flow: sign in, buy the cheapest pack, generate, receive the output, full and partial refunds claw back credits, a dispute claws back and a won dispute restores.
+- Locally in Creem test mode (or Stripe test mode, PayPal sandbox), walk the whole flow: sign in, buy the cheapest pack, generate, receive the output, full and partial refunds claw back credits, a dispute claws back and a won dispute restores.
 - `pnpm deploy:preview` and run the main flow once on the preview URL (remember previews share production data).
 - Privacy, terms, refunds and DMCA pages exist and the footer shows the contact email. Review the refund terms yourself.
 - `robots.txt`, `sitemap.xml` and `llms.txt` load; the home page title, description and canonical are correct.

@@ -30,7 +30,7 @@ shipwords is a free, MIT-licensed framework for running a fleet of new-keyword A
 **Takes money out of the box.** Every site comes with:
 
 - Google and email sign-in, account page
-- Stripe and PayPal, credit packs and subscriptions, orders and refunds
+- Creem (merchant of record), Stripe or PayPal; credit packs and subscriptions, orders and refunds
 - Email notifications
 - Free guest tries with abuse limits (reCAPTCHA v3)
 - Privacy, terms, refund and DMCA pages
@@ -52,7 +52,7 @@ The agent clones the repo, creates the site and runs it locally. The rules it fo
 
 ## Quick start
 
-Requirements: Node 24 (see `.nvmrc`), pnpm 10 (`corepack enable`), and Git Bash or WSL on Windows. To go live you will also need a Cloudflare account and a Stripe or PayPal account.
+Requirements: Node 24 (see `.nvmrc`), pnpm 10 (`corepack enable`), and Git Bash or WSL on Windows. To go live you will also need a Cloudflare account and a Creem account (or Stripe or PayPal).
 
 1. Fork or clone this repo, then install:
 
@@ -77,7 +77,7 @@ Requirements: Node 24 (see `.nvmrc`), pnpm 10 (`corepack enable`), and Git Bash 
 
    The example file runs as-is: email sign-in works (the code is printed in the dev server's terminal), new accounts get sign-up credits, and generations use the mock upstream (`UPSTREAM_MOCK=1`), so no model key is needed. Fill in more as you need it:
    - **Real generations**: a [Yir API key](https://yir.ai/?utm_source=shipwords&utm_medium=readme), with `UPSTREAM_MOCK` turned off.
-   - **Buying credits**: a Stripe test key (`sk_test_…`), then `node ../../tools/stripe-listen.mjs` in the site directory to forward webhooks.
+   - **Buying credits**: a Creem test key (`creem_test_…`) and test products in `refs.creem`; webhooks need a tunnel, see [local development](docs/local-development.md).
    - **Guest free tries**: reCAPTCHA keys. Without them, visitors sign in before their first generation.
    - **Google sign-in**: a Google OAuth client with `http://localhost:<port>` as an origin. Optional; email sign-in works without it.
 
@@ -97,21 +97,21 @@ The code is free under MIT, including commercial use. What you pay for:
 
 - Domains (Cloudflare Registrar sells them at cost).
 - Cloudflare usage. Sites that stitch video clips together use Cloudflare Containers and need the Workers Paid plan.
-- Stripe or PayPal fees on each order.
+- Payment provider fees on each order (Creem, Stripe or PayPal).
 - Model calls on Yir, billed per request. Each job's maximum cost is set in `src/models.server.ts`.
 
 ## Repository layout
 
-| Directory                  | What it holds                                                                                                                                                                                                            |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `packages/core`            | D1 + Drizzle, credit ledger with idempotent writes, Stripe and PayPal billing (packs, subscriptions, refunds, disputes), Better Auth, guest quota + reCAPTCHA v3, SEO/GEO helpers, analytics proxy, headless React hooks |
-| `packages/jobs`            | Workflow-based generation runtime with a one-way job state machine and automatic refunds, upstream adapter interface, Yir adapter (`@yir-ai/sdk`), mock upstream for local dev, optional ffmpeg compose container        |
-| `templates/ai-site`        | A complete, working AI image site copied by `pnpm new-site`: home, pricing, account, login, policy pages, `sitemap.xml`, `robots.txt`, `llms.txt`                                                                        |
-| `sites/<site>`             | Your sites, one per keyword, each deployed on its own                                                                                                                                                                    |
-| `sites/tinydeskai-example` | The full source of tinydeskai.io (video effect: photo slots, one-pass video edit, output check, ffmpeg compose, content pages)                                                                                           |
-| `apps/<sidecar>`           | Optional small Workers that belong to no single site                                                                                                                                                                     |
-| `tools/`                   | `new-site` scaffolder, `check-site` launch checks, `list-sites`, worktree setup, dev-port, Stripe webhook forwarding (Node built-ins only, with tests)                                                                   |
-| `docs/`                    | Architecture, local development, launch handbook                                                                                                                                                                         |
+| Directory                  | What it holds                                                                                                                                                                                                                   |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/core`            | D1 + Drizzle, credit ledger with idempotent writes, Creem, Stripe and PayPal billing (packs, subscriptions, refunds, disputes), Better Auth, guest quota + reCAPTCHA v3, SEO/GEO helpers, analytics proxy, headless React hooks |
+| `packages/jobs`            | Workflow-based generation runtime with a one-way job state machine and automatic refunds, upstream adapter interface, Yir adapter (`@yir-ai/sdk`), mock upstream for local dev, optional ffmpeg compose container               |
+| `templates/ai-site`        | A complete, working AI image site copied by `pnpm new-site`: home, pricing, account, login, policy pages, `sitemap.xml`, `robots.txt`, `llms.txt`                                                                               |
+| `sites/<site>`             | Your sites, one per keyword, each deployed on its own                                                                                                                                                                           |
+| `sites/tinydeskai-example` | The full source of tinydeskai.io (video effect: photo slots, one-pass video edit, output check, ffmpeg compose, content pages)                                                                                                  |
+| `apps/<sidecar>`           | Optional small Workers that belong to no single site                                                                                                                                                                            |
+| `tools/`                   | `new-site` scaffolder, `check-site` launch checks, `list-sites`, worktree setup, dev-port, Stripe webhook forwarding (Node built-ins only, with tests)                                                                          |
+| `docs/`                    | Architecture, local development, launch handbook                                                                                                                                                                                |
 
 Each site is a TanStack Start + React 19 app on its own Cloudflare Worker, with D1, R2 and Workflows.
 

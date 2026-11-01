@@ -57,7 +57,7 @@ pnpm test:tools && pnpm lint               # changed tools or config
 
 - Preview: in the site directory, `pnpm deploy:preview` (`wrangler versions upload`) returns a preview URL without touching production. Preview versions share the production D1 and R2.
 - **Production deploys run only from main, one site at a time, and need explicit confirmation from the user.** For package changes, deploy one site and watch it before deploying the other live sites.
-- Remote migrations (`pnpm db:migrate:remote`), creating Cloudflare resources, and configuring Stripe/PayPal or secrets all need explicit confirmation from the user.
+- Remote migrations (`pnpm db:migrate:remote`), creating Cloudflare resources, and configuring Creem/Stripe/PayPal or secrets all need explicit confirmation from the user.
 
 ## 6. Docs
 

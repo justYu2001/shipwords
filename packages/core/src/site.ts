@@ -10,7 +10,10 @@ interface ProductBase {
   id: string;
   name: string;
   price: Price;
-  /** Product IDs for providers that need pre-created products. Stripe uses inline prices and needs none; PayPal subscriptions need a Plan ID (refs.paypal). */
+  /**
+   * Product IDs for providers that need pre-created products. Stripe uses inline prices and needs none; PayPal subscriptions need a Plan ID (refs.paypal);
+   * Creem needs a product ID for every product (refs.creem), with the same price and currency as here.
+   */
   refs?: Record<string, string>;
 }
 
@@ -65,7 +68,9 @@ export interface SiteConfig {
         /** Enable Stripe Tax automatic tax calculation; configure it in the Stripe dashboard first. */
         automaticTax: boolean;
       }
-    | { provider: 'paypal' };
+    | { provider: 'paypal' }
+    /** Creem is the merchant of record and handles tax itself. */
+    | { provider: 'creem' };
   analytics?: {
     ga4?: string;
     clarity?: string;
@@ -76,6 +81,7 @@ export interface SiteConfig {
 
 export function defineSite<const T extends SiteConfig>(config: T): T {
   const ids = new Set<string>();
+  const creemRefs = new Set<string>();
   for (const product of config.products) {
     if (ids.has(product.id)) throw new Error(`duplicate product id: ${product.id}`);
     ids.add(product.id);
@@ -84,6 +90,13 @@ export function defineSite<const T extends SiteConfig>(config: T): T {
     }
     if (config.billing.provider === 'paypal' && product.kind === 'subscription' && !product.refs?.paypal) {
       throw new Error(`product ${product.id}: paypal subscriptions need refs.paypal (plan id)`);
+    }
+    if (config.billing.provider === 'creem') {
+      const ref = product.refs?.creem;
+      if (!ref) throw new Error(`product ${product.id}: creem products need refs.creem (product id)`);
+      // Payments are mapped back to our product by this ID, so two products can't share one.
+      if (creemRefs.has(ref)) throw new Error(`product ${product.id}: refs.creem ${ref} is used twice`);
+      creemRefs.add(ref);
     }
   }
   return config;

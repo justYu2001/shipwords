@@ -49,7 +49,7 @@
   "common_plan_buy": "买 {name}",
   "common_pay_one_time": "一次性付款，不是订阅",
   "common_pay_refund": "生成失败退还积分",
-  "common_pay_secure": "Stripe 安全结账",
+  "common_pay_secure": "Creem 安全结账",
   "common_pay_fine": "AI 能做到很像，但不是一模一样。教练和名人做成明显的恶搞没问题；不能有未满 18 岁的人。",
   "common_pay_refund_policy": "退款政策",
   "common_pricing_dialog_title": "选一个套餐",

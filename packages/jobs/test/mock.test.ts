@@ -131,6 +131,9 @@ describe('mock switch', () => {
     expect(
       mockMode({ ...demo, PAYPAL_CLIENT_ID: 'id', PAYPAL_ENV: 'sandbox', STRIPE_SECRET_KEY: 'sk_live_x' }),
     ).toBeNull();
+    expect(mockMode({ ...demo, CREEM_API_KEY: 'creem_test_x' })).toBe('succeed');
+    expect(mockMode({ ...demo, CREEM_API_KEY: 'creem_x' })).toBeNull();
+    expect(mockMode({ ...demo, CREEM_API_KEY: 'creem_x', STRIPE_SECRET_KEY: 'sk_test_x' })).toBeNull();
     // No payment credentials at all: stay off.
     expect(mockMode(demo)).toBeNull();
   });

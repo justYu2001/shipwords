@@ -3,13 +3,9 @@ APP_URL=http://localhost:5173
 BETTER_AUTH_SECRET=replace-with-32-random-bytes
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
-STRIPE_SECRET_KEY=sk_test_xxx
-STRIPE_WEBHOOK_SECRET=whsec_xxx
-# Only when site.config.ts uses PayPal (this site uses Stripe, leave empty).
-PAYPAL_ENV=sandbox
-PAYPAL_CLIENT_ID=
-PAYPAL_CLIENT_SECRET=
-PAYPAL_WEBHOOK_ID=
+# Payments (Creem). Use a test-mode key locally (creem_test_…); for webhooks, see docs/local-development.md.
+CREEM_API_KEY=creem_test_xxx
+CREEM_WEBHOOK_SECRET=
 RECAPTCHA_SITE_KEY=
 RECAPTCHA_PROJECT_ID=
 RECAPTCHA_API_KEY=

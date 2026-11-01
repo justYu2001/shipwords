@@ -16,6 +16,7 @@ interface MockEnv {
   STRIPE_SECRET_KEY?: string;
   PAYPAL_CLIENT_ID?: string;
   PAYPAL_ENV?: string;
+  CREEM_API_KEY?: string;
 }
 
 export function mockMode(env: MockEnv): MockMode | null {
@@ -37,7 +38,9 @@ function paymentsInTestMode(env: MockEnv): boolean {
   const stripeLive = !!env.STRIPE_SECRET_KEY && !stripeTest;
   const paypalTest = !!env.PAYPAL_CLIENT_ID && env.PAYPAL_ENV === 'sandbox';
   const paypalLive = !!env.PAYPAL_CLIENT_ID && env.PAYPAL_ENV !== 'sandbox';
-  return !stripeLive && !paypalLive && (stripeTest || paypalTest);
+  const creemTest = /^creem_test_/.test(env.CREEM_API_KEY ?? '');
+  const creemLive = !!env.CREEM_API_KEY && !creemTest;
+  return !stripeLive && !paypalLive && !creemLive && (stripeTest || paypalTest || creemTest);
 }
 
 /** The fake task's whole state is encoded in its ID: no storage needed, replays and repeated polls agree. */
